@@ -1,3 +1,5 @@
+Same as https://github.com/jakiestfu/Snap.js + improve event dispatcher to allow the "on" method to register multiple events a la jQuery (e.g, snap.on('open close', function(event, trigger) {}) will listen to both the "open" and "close" events) + added the trigger source ('button', 'tag', or 'drag') to the event callback. All the modification all backward compatible.
+
 # Snap.js
 A Library for creating beautiful mobile shelfs in Javascript
 
