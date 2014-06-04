@@ -77,7 +77,13 @@
             },
             dispatchEvent: function(type) {
                 if (typeof eventList[type] === 'function') {
-                    return eventList[type].call();
+                    return eventList[type].call(type);
+                }
+                // Event namespaces
+                var namespace = type.indexOf('.');
+                if (typeof eventList[type.substr(0, namespace)] === 'function') {
+                    return eventList[type.substr(0, namespace)](type.substr(0, namespace),
+                        type.substr(namespace + 1));
                 }
             },
             vendor: function(){
@@ -420,7 +426,7 @@
 
                         // Tap Close
                         if (cache.dragWatchers.current === 0 && translated !== 0 && settings.tapToClose) {
-                            utils.dispatchEvent('close');
+                            utils.dispatchEvent('close.tap');
                             utils.events.prevent(e);
                             action.translate.easeTo(0);
                             cache.isDragging = false;
@@ -433,11 +439,16 @@
                             // Halfway, Flicking, or Too Far Out
                             if ((cache.simpleStates.halfway || cache.simpleStates.hyperExtending || cache.simpleStates.flick)) {
                                 if (cache.simpleStates.flick && cache.simpleStates.towards === 'left') { // Flicking Closed
+                                    utils.dispatchEvent('close.drag');
                                     action.translate.easeTo(0);
                                 } else if (
                                     (cache.simpleStates.flick && cache.simpleStates.towards === 'right') || // Flicking Open OR
                                     (cache.simpleStates.halfway || cache.simpleStates.hyperExtending) // At least halfway open OR hyperextending
                                 ) {
+                                    // Only throw an event in the drawer was previously closed
+                                    if (cache.translation === 0) {
+                                        utils.dispatchEvent('open.drag');
+                                    }
                                     action.translate.easeTo(settings.maxPosition); // Open Left
                                 }
                             } else {
@@ -448,11 +459,13 @@
                             // Halfway, Flicking, or Too Far Out
                             if ((cache.simpleStates.halfway || cache.simpleStates.hyperExtending || cache.simpleStates.flick)) {
                                 if (cache.simpleStates.flick && cache.simpleStates.towards === 'right') { // Flicking Closed
+                                    utils.dispatchEvent('close.drag');
                                     action.translate.easeTo(0);
                                 } else if (
                                     (cache.simpleStates.flick && cache.simpleStates.towards === 'left') || // Flicking Open OR
                                     (cache.simpleStates.halfway || cache.simpleStates.hyperExtending) // At least halfway open OR hyperextending
                                 ) {
+                                    utils.dispatchEvent('open.drag');
                                     action.translate.easeTo(settings.minPosition); // Open Right
                                 }
                             } else {
@@ -476,7 +489,7 @@
          * Public
          */
         this.open = function(side) {
-            utils.dispatchEvent('open');
+            utils.dispatchEvent('open.button');
             utils.klass.remove(doc.body, 'snapjs-expand-left');
             utils.klass.remove(doc.body, 'snapjs-expand-right');
 
@@ -495,7 +508,7 @@
             }
         };
         this.close = function() {
-            utils.dispatchEvent('close');
+            utils.dispatchEvent('close.button');
             action.translate.easeTo(0);
         };
         this.expand = function(side){
@@ -515,12 +528,18 @@
         };
 
         this.on = function(evt, fn) {
-            eventList[evt] = fn;
+            var events = evt.split(' ');
+            for (var i = 0; i < events.length; i++) {
+              eventList[events[i]] = fn;
+            }
             return this;
         };
         this.off = function(evt) {
-            if (eventList[evt]) {
-                eventList[evt] = false;
+            var events = evt.split(' ');
+            for (var i = 0; i < events.length; i++) {
+                if (eventList[evt]) {
+                    eventList[evt] = false;
+                }
             }
         };
 
